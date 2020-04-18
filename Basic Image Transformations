@@ -1,5 +1,5 @@
 Shearing
-Updated with images in the pending images
+Updated with images in the pending link
 class RandomShear(object):
     """Randomly shears an image in horizontal direction   
     
