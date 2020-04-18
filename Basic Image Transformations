@@ -1,1 +1,299 @@
+Shearing
+Updated with images in the pending images
+class RandomShear(object):
+    """Randomly shears an image in horizontal direction   
+    
+    
+    Bounding boxes which have an area of less than 25% in the remaining in the 
+    transformed image is dropped. The resolution is maintained, and the remaining
+    area if any is filled by black color.
+    
+    Parameters
+    ----------
+    shear_factor: float or tuple(float)
+        if **float**, the image is sheared horizontally by a factor drawn 
+        randomly from a range (-`shear_factor`, `shear_factor`). If **tuple**,
+        the `shear_factor` is drawn randomly from values specified by the 
+        tuple
+        
+    Returns
+    -------
+    
+    numpy.ndaaray
+        Sheared image in the numpy format of shape `HxWxC`
+    
+    numpy.ndarray
+        Tranformed bounding box co-ordinates of the format `n x 4` where n is 
+        number of bounding boxes and 4 represents `x1,y1,x2,y2` of the box
+        
+    """
 
+def __init__(self, shear_factor = 0.2):
+    self.shear_factor = shear_factor
+    
+    if type(self.shear_factor) == tuple:
+        assert len(self.shear_factor) == 2, "Invalid range for scaling factor"   
+    else:
+        self.shear_factor = (-self.shear_factor, self.shear_factor)
+    
+    shear_factor = random.uniform(*self.shear_factor)
+
+
+def __call__(self, img, bboxes):
+
+    shear_factor = random.uniform(*self.shear_factor)
+
+    w,h = img.shape[1], img.shape[0]
+
+    if shear_factor < 0:
+        img, bboxes = HorizontalFlip()(img, bboxes)
+
+    M = np.array([[1, abs(shear_factor), 0],[0,1,0]])
+
+    nW =  img.shape[1] + abs(shear_factor*img.shape[0])
+
+    bboxes[:,[0,2]] += ((bboxes[:,[1,3]]) * abs(shear_factor) ).astype(int) 
+
+
+    img = cv2.warpAffine(img, M, (int(nW), img.shape[0]))
+
+    if shear_factor < 0:
+        img, bboxes = HorizontalFlip()(img, bboxes)
+
+    img = cv2.resize(img, (w,h))
+
+    scale_factor_x = nW / w
+
+    bboxes[:,:4] /= [scale_factor_x, 1, scale_factor_x, 1] 
+
+
+    return img, bboxes
+
+# from data_aug.bbox_utils import *
+import matplotlib.pyplot as plt
+import cv2
+
+(h,w) = img.shape[:2]
+center = (w/2, h/2)
+
+M = cv2.getRotationMatrix2D(center, angle30, scale)
+
+abs_cos = abs(M[0,0]) 
+abs_sin = abs(M[0,1])
+
+
+bound_w = int(h * abs_sin + w * abs_cos)
+bound_h = int(h * abs_cos + w * abs_sin)
+
+M[0, 2] += bound_w/2 - center[0]
+M[1, 2] += bound_h/2 - center[1]
+
+rotated30 = cv2.warpAffine(img, M, (bound_w,bound_h))
+
+  
+shear = RandomShear(0.7)
+
+
+plt.imshow(draw_rect(img, bboxes))
+
+
+Rotation
+import cv2
+import numpy as np
+
+img = cv2.imread('8.jpg')
+(h,w) = img.shape[:2]
+center = (w/2, h/2)
+angle45 = 45
+angle90 = 90
+scale = 1.0
+
+M = cv2.getRotationMatrix2D(center, angle45, scale)
+M2 = cv2.getRotationMatrix2D(center, angle90, scale)
+
+abs_cos = abs(M[0,0]) 
+abs_sin = abs(M[0,1])
+
+abs_cos = abs(M2[0,0]) 
+abs_sin = abs(M2[0,1])
+
+bound_w = int(h * abs_sin + w * abs_cos)
+bound_h = int(h * abs_cos + w * abs_sin)
+
+M[0, 2] += bound_w/2 - center[0]
+M[1, 2] += bound_h/2 - center[1]
+
+M2[0, 2] += bound_w/2 - center[0]
+M2[1, 2] += bound_h/2 - center[1]
+
+rotated45 = cv2.warpAffine(img, M, (bound_w,bound_h))
+
+for i in range(7):
+	rotated45 = cv2.warpAffine(rotated45, M, (bound_w,bound_h))
+
+rotated90 = cv2.warpAffine(img, M2, (bound_w,bound_h))
+
+for i in range(3):
+	rotated90 = cv2.warpAffine(rotated90, M2, (bound_w,bound_h))
+
+cv2.imshow('Rotated by 45 8 times', rotated45)
+cv2.imshow('Rotated by 90 4 times', rotated90)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+Interpolation
+import cv2
+import numpy as np
+
+img = cv2.imread('block.png')
+(h,w) = img.shape[:2]
+center = (w/2, h/2)
+angle45 = 45
+scale = 1.0
+
+M = cv2.getRotationMatrix2D(center, angle45, scale)
+
+
+abs_cos = abs(M[0,0]) 
+abs_sin = abs(M[0,1])
+
+
+bound_w = int(h * abs_sin + w * abs_cos)
+bound_h = int(h * abs_cos + w * abs_sin)
+
+M[0, 2] += bound_w/2 - center[0]
+M[1, 2] += bound_h/2 - center[1]
+
+rotated30 = cv2.warpAffine(img, M, (bound_w,bound_h))
+
+# cv2.imshow('Original Image', img)
+# cv2.imshow('Rotated by 30', rotated30)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+
+scale_percent = 110
+width = int(img.shape[1] * scale_percent / 100)
+height = int(img.shape[0] * scale_percent / 100)
+dim = (width, height)
+
+scaled = cv2.resize(img, dim, interpolation=cv2.INTER_NEAREST)
+scaled1 = cv2.resize(img, dim, interpolation=cv2.INTER_LINEAR)
+scaled2 = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+
+cv2.imshow("Nearest Neighbour", scaled)
+cv2.imshow("Bilinear", scaled)
+cv2.imshow("Bicubic", scaled)
+cv2.waitKey(0)
+cv2.destroyAllWindows() 
+
+Distortion
+import cv2
+import numpy
+
+imgtrn = cv2.imread("chDistorted.jpeg")
+dimtrn = imgtrn.shape
+
+imgray = cv2.cvtColor(imgtrn, cv2.COLOR_BGR2GRAY)
+ret, binary = cv2.threshold(imgray, 60, 255, 0)
+cv2.imshow("binary",binary)
+contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+contours.remove(contours[0])
+
+contours = max(contours, key=cv2.contourArea)
+
+br=[0,0]
+tl=[dimtrn[0],dimtrn[1]]
+tr=[0,dimtrn[1]]
+bl=[dimtrn[0],0]
+for i in contours:
+	for j in i:
+		if br[0]+br[1]<j[0]+j[1]:
+			br=j
+		if tl[0]+tl[1]>j[0]+j[1]:
+			tl=j
+		if tr[0]-tr[1]<j[0]-j[1]:
+			tr=j
+		if -bl[0]+bl[1]<-j[0]+j[1]:
+			bl=j
+
+x=numpy.float32(tr)
+y=numpy.float32(bl)
+
+pts1=numpy.float32([[0,0],[0,dimtrn[1]],[dimtrn[0],0],[dimtrn[0],dimtrn[1]]])
+pts2=numpy.float32([tl,y,x,br])
+
+m = cv2.getPerspectiveTransform(pts2,pts1)
+img = cv2.warpPerspective(imgtrn,m,(dimtrn[0],dimtrn[1]))
+
+cv2.imshow("transformed",img)
+cv2.drawContours(imgtrn, contours, -1, (0,255,0), 1)
+cv2.imshow("turned",imgtrn)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+cv2.imwrite("ch.jpg",img)
+
+Basic Tranformation
+import cv2
+import numpy as np
+
+img = cv2.imread('calvinHobbes.jpeg')
+(h,w) = img.shape[:2]
+center = (w/2, h/2)
+angle30 = 30
+scale = 1.0
+
+M = cv2.getRotationMatrix2D(center, angle30, scale)
+
+
+abs_cos = abs(M[0,0]) 
+abs_sin = abs(M[0,1])
+
+
+bound_w = int(h * abs_sin + w * abs_cos)
+bound_h = int(h * abs_cos + w * abs_sin)
+
+M[0, 2] += bound_w/2 - center[0]
+M[1, 2] += bound_h/2 - center[1]
+
+rotated30 = cv2.warpAffine(img, M, (bound_w,bound_h))
+
+# cv2.imshow('Original Image', img)
+# cv2.imshow('Rotated by 30', rotated30)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+
+scale_percent = 250
+width = int(img.shape[1] * scale_percent / 100)
+height = int(img.shape[0] * scale_percent / 100)
+dim = (width, height)
+
+scaled = cv2.resize(img, dim, interpolation=cv2.INTER_NEAREST)
+scaled1 = cv2.resize(img, dim, interpolation=cv2.INTER_LINEAR)
+scaled2 = cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+
+# cv2.imshow("Nearest Neighbour", scaled)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+# cv2.imshow("Bilinear", scaled)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+# cv2.imshow("Bicubic", scaled)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+hheight, qwidth = height/2, width/4
+  
+T = np.float32([[1, 0, qwidth], [0, 1, hheight]]) 
+  
+# We use warpAffine to transform 
+# the image using the matrix, T 
+img_translation = cv2.warpAffine(img, T, (w,h)) 
+ 
+cv2.imshow('Translation', img_translation) 
+cv2.waitKey() 
+  
+cv2.destroyAllWindows() 
